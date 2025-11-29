@@ -1,56 +1,78 @@
-### HW_INFO
-- board : arduino wifi uno
-- display: 1.44in ST7735 , SPI
-- varResist: voltage divider
-- bellBtn : digialpin out to on/off pc817
-- Button : push button
-- ivSensor : analog input
-- spk : piezzo speaker
+# Hardware Specification
 
-### CONNECTION
-#### display
-1. display.sck = 13
-2. display.mosi = 11
-3. display.cs = 10
-4. display.dc = 9
-5. display.rst = 8
-6. diplay.bl = 3.3v
-#### other parts
-1. btn.plus = gpio4
-2. varResist.out = A1
-3. bellBtn.plus =  gpio5
-4. Button.plus = gpio4
-5. ivSensor = A0
-6. spk.out = gpio3
+### Components
+- **Board**: Arduino Uno WiFi
+- **Display**: 1.44" ST7735 SPI LCD
+- **Input Button**: Push button
+- **Variable Resistor**: Potentiometer connected as a voltage divider
+- **IV Sensor**: Analog input sensor
+- **Speaker**: Piezo speaker
+- **Bell Button**: Digital output to control a PC817 optocoupler
 
-### Function Description
-1. 기기는 {normal_mode}  과 {emergency_mode} 두 가지 모드로 동작한다.
-2.  if ivSensor > ivRef:
-    enter {emergency_mode}
-### Button description
-1. Button2 library 를 사용하라.
-2. short press in {normal_mode} 
-   - bellBTN 을 3초동한 High
-2. short press in {emergency_mode}
-   - ivRef 값을 a1 값으로 update 후 3초뒤 enter {normal_mode}
-3. longpress  in {setting_mode}
-     update ivRef = a1 and  after  3secods later enter {normal_mode}
-4. longpress in {normal_mode} 
-  enter {setting_mode}
-#### normal_mode
-1. display: 화면 가운데 "GOOD" 글자, Background : green
-2. piezzo: off
-3. bellBtn: low
-#### emergency_mode
-1. display: 화면 가운데 "CAUTION", bliking Background: Red
-2. piezzo speaker: 3초 Beep On ,1초 Beep Off 
-3. bellBtn: high for 2 seconds
-#### setting_mode
-1. {Button} longpress  in {setting_mode}
-     update ivRef = a1 and  after  3secods later enter {normal_mode}
-#### booting
-1. display: "Hello" and change colors "RED,YELLOW, BLUE" in 2second once.
-2. piezzo  speaker: beep 3 seconds 
-### Serial monitoring 
-1. 2초간격으로 아래 출력
- - ivValue, ivRef, mode
+### Pin Connections
+- **Display**
+  - SCK: Pin 13
+  - MOSI: Pin 11
+  - CS: Pin 10
+  - DC: Pin 9
+  - RST: Pin 8
+  - BL: 3.3V
+- **Other Components**
+  - Input Button: GPIO 4
+  - Bell Button: GPIO 5
+  - Speaker: GPIO 3
+  - IV Sensor: A0
+  - Variable Resistor: A1
+
+# Functional Specification
+
+### Core Logic
+The device monitors an IV drip using the `ivSensor`. If the sensor value exceeds a reference threshold `ivRef`, it enters `Emergency Mode`. The `ivRef` threshold can be adjusted by the user. The `Button2` library should be used for button handling.
+
+### Boot Sequence
+1.  **Display**: Shows "Hello" and briefly cycles through RED, YELLOW, and BLUE backgrounds.
+2.  **Speaker**: Beeps for 3 seconds.
+
+---
+
+### Modes of Operation
+
+#### 1. Normal Mode
+This is the default operating mode.
+
+- **Display**: Shows "GOOD" in the center with a green background.
+- **Speaker**: Off.
+- **Bell Button**: Low (off).
+- **Button Actions**:
+  - **Short Press**: Activates the Bell Button (sets output HIGH) for 3 seconds.
+  - **Long Press**: Enters `Setting Mode`.
+- **State Transition**:
+  - Enters `Emergency Mode` if `ivSensor` value > `ivRef`.
+
+#### 2. Emergency Mode
+This mode is triggered when the IV sensor detects a problem.
+
+- **Display**: Shows "CAUTION" in the center with a blinking red background.
+- **Speaker**: Beeps continuously (3 seconds ON, 1 second OFF).
+- **Bell Button**: Activates for 2 seconds upon entering this mode.
+- **Button Actions**:
+  - **Short Press**: Updates `ivRef` with the current value from the Variable Resistor (A1). After 3 seconds, returns to `Normal Mode`.
+- **State Transition**:
+  - Returns to `Normal Mode` after a short button press and a 3-second delay.
+
+#### 3. Setting Mode
+This mode allows the user to set the `ivRef` threshold.
+
+- **Display**: Shows "SETTING" in the center with a yellow background.
+- **Button Actions**:
+  - **Long Press**: Updates `ivRef` with the current value from the Variable Resistor (A1). After 3 seconds, returns to `Normal Mode`.
+- **State Transition**:
+  - Returns to `Normal Mode` after a long button press and a 3-second delay.
+
+---
+
+### Serial Monitoring
+- Every 2 seconds, the device prints the following values to the serial monitor:
+  - `ivValue` (current reading from IV Sensor)
+  - `ivRef` (current reference threshold)
+  - `mode` (current operating mode)
