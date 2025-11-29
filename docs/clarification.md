@@ -1,10 +1,11 @@
-# 사용자 확인 필요
+# Hardware Design Clarifications
 
-요청이 불명확합니다: “aidermacs}”가 무엇을 의미하나요?
+## Pin Conflict on GPIO4
 
-아래 중 원하는 항목을 알려주세요.
-- Emacs에서 Aider 연동 설정 방법 안내(설치/설정/단축키 등)
-- 현재 ESP32 프로젝트에 대한 추가 코드 변경 요청
-- 기타(구체적으로 설명해 주세요)
+A pin conflict has been identified in `hw_description.md`.
 
-확인 후 알려주시면 해당 항목에 맞춰 즉시 진행하겠습니다.
+- **`btn_mode.plus`** is assigned to `gpio4`.
+- **`temp.a0`** (for the DHT11 sensor) is also assigned to `gpio4`.
+
+**Resolution:**
+This conflict must be resolved before the DHT11 temperature sensor functionality can be implemented. The button functionality will be implemented first using `GPIO4`. The temperature sensor implementation is on hold pending a hardware pin reassignment.
