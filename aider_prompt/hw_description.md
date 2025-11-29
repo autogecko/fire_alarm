@@ -1,78 +1,48 @@
-# Hardware Specification
+### HW_INFO
+- board : esp32dev (ESP32-DevKit)
+- btn_mode : alarm_mode, normal_mode toggle 용 button
+- temp: dht11
+- spk : piezo speaker
+- sen_gas: MQ7 (ADC 12-bit: 0~4095)
+- sw_laser: laser 전원 switching 을 위한 digital port
+- sw_motor: motor 전원 switching 을 위한 digital port
+- led_stat: 상태 LED
+- note: DHT11 데이터 핀은 문서에 미기재 → 본 프로젝트에서는 gpio4 사용
+### HW_CONNECTION
+1. btn_mode.plus = gpio12
+2. spk.out = gpio5
+3. sen_gas.aout = gpio18
+4. led_stat.plus = gpio13
+5. temp.a0 = gpio4
+6. sw_laser.plus = gpio21 
+7. sw_motor.plus = gpio23
+### Function Description
+1. 주기성 처리는 비차단 방식(millis) 타이머로 구현
+2. 두 대의 esp32 가  wifi 를 이용해 broadcast 한다.(ESP-NOW 사용)
+3. 공유기 없이 broadcast 로 상황을 전파한다.
+4. dht11.temperature > 30 또는 gas 원시값 > 600 이면 {Alarm mode} 진입, 
+5. btn_mode 가 눌러지면 {Normal_mode} ,{Alarm_mode} toggle 됨.
+6. 현재 mode 와 비교해서 다른 상태 이면 상태를 바꾼다.
+   ex) 현재 {normal_mode} 인데 'normal_mode' 신호 받음 --> 상태 안바뀜.
+        'Alarm' 신호 받음 --> {Alarm_mode} 상태 변경 
+### Alarm_mode
+0. "Alarm" 상태 값을 전달 받으면 {Alarm_mode} 이다. 
+1. 내장 LED를 Toggle 한다.
+2. {Alarm_mode} 상태에서 "Alarm" 신호를 받으면 {Nomrmal_mode} 로 toggle 된다.
+3. "Alarm" 이란 상태값 을 전파한다.
+#### Alarm_mode_action
+1. spk : 1초마다 beep 반복
+2. led_stat: 0.5초마다 blinking
+3. sw_laser : HIGH
+4. sw_motor: HIGH
+### Normal_mode
+0. "normal" 상태 값을 전달 받으면 {Normal_mode} 이다. 
+1. led_stat : 계속 ON 상태  
+2. {Alarm_mode} 상태에서 "Alarm" 신호를 받으면 {Nomrmal_mode} 로 toggle 된다.
+3. "normal" 이란 상태값 을 전파한다.
+#### Normal_mode_action
+1. led_stat :  ON
+2. beep, sw_laswer, sw_motor : off
+### Serial monitoring 
+1. IPAddress, mode, btn 값  제목과 함께 출력  for every 1 seconds.
 
-### Components
-- **Board**: Arduino Uno WiFi
-- **Display**: 1.44" ST7735 SPI LCD
-- **Input Button**: Push button
-- **Variable Resistor**: Potentiometer connected as a voltage divider
-- **IV Sensor**: Analog input sensor
-- **Speaker**: Piezo speaker
-- **Bell Button**: Digital output to control a PC817 optocoupler
-
-### Pin Connections
-- **Display**
-  - SCK: Pin 13
-  - MOSI: Pin 11
-  - CS: Pin 10
-  - DC: Pin 9
-  - RST: Pin 8
-  - BL: 3.3V
-- **Other Components**
-  - Input Button: GPIO 4
-  - Bell Button: GPIO 5
-  - Speaker: GPIO 3
-  - IV Sensor: A0
-  - Variable Resistor: A1
-
-# Functional Specification
-
-### Core Logic
-The device monitors an IV drip using the `ivSensor`. If the sensor value exceeds a reference threshold `ivRef`, it enters `Emergency Mode`. The `ivRef` threshold can be adjusted by the user. The `Button2` library should be used for button handling.
-
-### Boot Sequence
-1.  **Display**: Shows "Hello" and briefly cycles through RED, YELLOW, and BLUE backgrounds.
-2.  **Speaker**: Beeps for 3 seconds.
-
----
-
-### Modes of Operation
-
-#### 1. Normal Mode
-This is the default operating mode.
-
-- **Display**: Shows "GOOD" in the center with a green background.
-- **Speaker**: Off.
-- **Bell Button**: Low (off).
-- **Button Actions**:
-  - **Short Press**: Activates the Bell Button (sets output HIGH) for 3 seconds.
-  - **Long Press**: Enters `Setting Mode`.
-- **State Transition**:
-  - Enters `Emergency Mode` if `ivSensor` value > `ivRef`.
-
-#### 2. Emergency Mode
-This mode is triggered when the IV sensor detects a problem.
-
-- **Display**: Shows "CAUTION" in the center with a blinking red background.
-- **Speaker**: Beeps continuously (3 seconds ON, 1 second OFF).
-- **Bell Button**: Activates for 2 seconds upon entering this mode.
-- **Button Actions**:
-  - **Short Press**: Updates `ivRef` with the current value from the Variable Resistor (A1). After 3 seconds, returns to `Normal Mode`.
-- **State Transition**:
-  - Returns to `Normal Mode` after a short button press and a 3-second delay.
-
-#### 3. Setting Mode
-This mode allows the user to set the `ivRef` threshold.
-
-- **Display**: Shows "SETTING" in the center with a yellow background.
-- **Button Actions**:
-  - **Long Press**: Updates `ivRef` with the current value from the Variable Resistor (A1). After 3 seconds, returns to `Normal Mode`.
-- **State Transition**:
-  - Returns to `Normal Mode` after a long button press and a 3-second delay.
-
----
-
-### Serial Monitoring
-- Every 2 seconds, the device prints the following values to the serial monitor:
-  - `ivValue` (current reading from IV Sensor)
-  - `ivRef` (current reference threshold)
-  - `mode` (current operating mode)
