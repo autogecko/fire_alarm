@@ -1,20 +1,18 @@
 # Hardware Design Clarifications
 
-## Pin Conflict on GPIO4 (Resolved)
+## All Pin Conflicts Resolved
 
-The previous pin conflict on `GPIO4` has been resolved with the update to `hw_description.md`.
+All previously identified pin conflicts have been resolved based on the latest `hw_description.md`.
 
-- **`btn_mode.plus`** has been reassigned from `gpio4` to `gpio12`.
+### GPIO4 Conflict (Resolved)
+- **`btn_mode.plus`** was moved from `gpio4` to `gpio12`.
 - **`temp.a0`** remains on `gpio4`.
+- This conflict is resolved.
 
-This allows both the button and temperature sensor to be implemented on their dedicated pins.
+### GPIO12 Conflict (Resolved)
+- **`btn_mode.plus`** was assigned to `gpio12`.
+- A temporary conflict arose as `SW_LASER_PIN` was also using `gpio12` as a placeholder.
+- **`sw_laser.plus`** has now been assigned to `gpio21` in `hw_description.md`.
+- This conflict is resolved.
 
-## New Potential Pin Conflict on GPIO12
-
-A new potential conflict has been created by reassigning `btn_mode.plus` to `gpio12`.
-
-- **`BTN_PIN`** is now `12`.
-- **`SW_LASER_PIN`** is currently a placeholder also set to `12` in `include/config.h`.
-
-**Resolution:**
-The pin for `sw_laser` is not yet specified in `hw_description.md`. `SW_LASER_PIN` needs a new pin assignment in `include/config.h` before the laser can be used. The button will use `GPIO12` as specified.
+All component pins are now uniquely assigned.

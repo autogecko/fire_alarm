@@ -15,9 +15,9 @@
 #define GAS_SENSOR_PIN 18 // hw_description.md: sen_gas.aout = gpio18
 // Note: gpio4 충돌이 해결되었습니다. btn_mode는 gpio12로, temp 센서는 gpio4로 할당되었습니다.
 #define TEMP_SENSOR_PIN 4 // hw_description.md: temp.a0= gpio4
-// TODO: BTN_PIN이 gpio12를 사용하므로 SW_LASER_PIN과 충돌합니다. 핀 할당을 재검토해야 합니다.
-#define SW_LASER_PIN 12 // TODO: 핀 할당 필요
-#define SW_MOTOR_PIN 14 // TODO: 핀 할당 필요
+// Note: hw_description.md 업데이트로 gpio12 충돌이 해결되었습니다.
+#define SW_LASER_PIN 21 // hw_description.md: sw_laser.plus = gpio21
+#define SW_MOTOR_PIN 23 // hw_description.md: sw_motor.plus = gpio23
 
 // 시리얼 설정
 #ifndef SERIAL_BAUD
