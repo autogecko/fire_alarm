@@ -28,8 +28,7 @@
 ### Alarm_mode
 0. "Alarm" 상태 값을 전달 받으면 {Alarm_mode} 이다. 
 1. 내장 LED를 Toggle 한다.
-2. {Alarm_mode} 상태에서 "Alarm" 신호를 받으면 {Nomrmal_mode} 로 toggle 된다.
-3. "Alarm" 이란 상태값 을 전파한다.
+2. "Alarm" 이란 상태값 을 전파한다.
 #### Alarm_mode_action
 1. spk : 1초마다 beep 반복
 2. led_stat: 0.5초마다 blinking
@@ -38,8 +37,7 @@
 ### Normal_mode
 0. "normal" 상태 값을 전달 받으면 {Normal_mode} 이다. 
 1. led_stat : 계속 ON 상태  
-2. {Alarm_mode} 상태에서 "Alarm" 신호를 받으면 {Nomrmal_mode} 로 toggle 된다.
-3. "normal" 이란 상태값 을 전파한다.
+2. "normal" 이란 상태값 을 전파한다.
 #### Normal_mode_action
 1. led_stat :  ON
 2. beep, sw_laswer, sw_motor : off
