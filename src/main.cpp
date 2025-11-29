@@ -18,15 +18,18 @@ enum class Mode {
 
 static Mode g_mode = Mode::Normal;
 
-enum class RxSig { None = 0, Alarm };
+enum class RxSig { None = 0, Alarm, Normal };
 static volatile RxSig g_lastRxSig = RxSig::None;
 static uint32_t lastLedToggleMs = 0;
 static uint32_t lastLedStatToggleMs = 0;
+static uint32_t lastSpkToggleMs = 0;
+static uint32_t lastSensorReadMs = 0;
 static const uint8_t kBroadcastAddr[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 static void onDataRecv(const uint8_t *mac, const uint8_t *data, int len);
 static void onDataSent(const uint8_t *mac, esp_now_send_status_t status);
 static bool initEspNow();
 static void sendAlarm();
+static void sendNormal();
 
 // 버튼 상태 추적
 static bool lastBtnState = true; // PULLUP 기준: true=HIGH(미눌림), false=LOW(눌림)
@@ -63,6 +66,9 @@ static void onDataRecv(const uint8_t *mac, const uint8_t *data, int len) {
   if (len >= (int)strlen(ALARM_MSG) && memcmp(data, ALARM_MSG, strlen(ALARM_MSG)) == 0) {
     g_lastRxSig = RxSig::Alarm;
     Serial.println("[ESP-NOW][RX] 'alarm' 수신");
+  } else if (len >= (int)strlen(NORMAL_MSG) && memcmp(data, NORMAL_MSG, strlen(NORMAL_MSG)) == 0) {
+    g_lastRxSig = RxSig::Normal;
+    Serial.println("[ESP-NOW][RX] 'normal' 수신");
   }
 }
 
@@ -71,6 +77,15 @@ static void sendAlarm() {
   const uint8_t* payload = reinterpret_cast<const uint8_t*>(ALARM_MSG);
   size_t len = strlen(ALARM_MSG);
   esp_now_send(dst, payload, len);
+  Serial.println("[ESP-NOW][TX] 'alarm' 송신");
+}
+
+static void sendNormal() {
+  const uint8_t* dst = kBroadcastAddr;
+  const uint8_t* payload = reinterpret_cast<const uint8_t*>(NORMAL_MSG);
+  size_t len = strlen(NORMAL_MSG);
+  esp_now_send(dst, payload, len);
+  Serial.println("[ESP-NOW][TX] 'normal' 송신");
 }
 
 void setup() {
@@ -81,6 +96,11 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
 
   pinMode(LED_STAT_PIN, OUTPUT);
+  pinMode(SPK_PIN, OUTPUT);
+  pinMode(GAS_SENSOR_PIN, INPUT);
+  pinMode(SW_LASER_PIN, OUTPUT);
+  pinMode(SW_MOTOR_PIN, OUTPUT);
+
 
   pinMode(BTN_PIN, INPUT_PULLUP);  // 내부 풀업 사용(눌림=LOW)
   lastBtnState = digitalRead(BTN_PIN);
@@ -103,14 +123,12 @@ void setup() {
 
 void loop() {
   // 1. 수신된 ESP-NOW 신호 처리
-  if (g_lastRxSig == RxSig::Alarm) {
-    if (g_mode == Mode::Normal) {
-      g_mode = Mode::Alarm;
-      Serial.println("[모드변경] Normal -> Alarm (신호수신)");
-    } else {
-      g_mode = Mode::Normal;
-      Serial.println("[모드변경] Alarm -> Normal (신호수신)");
-    }
+  if (g_lastRxSig == RxSig::Alarm && g_mode != Mode::Alarm) {
+    g_mode = Mode::Alarm;
+    Serial.println("[모드변경] Normal -> Alarm (신호수신)");
+  } else if (g_lastRxSig == RxSig::Normal && g_mode != Mode::Normal) {
+    g_mode = Mode::Normal;
+    Serial.println("[모드변경] Alarm -> Normal (신호수신)");
   }
   g_lastRxSig = RxSig::None; // 신호 처리 후 플래그 초기화
 
@@ -129,18 +147,33 @@ void loop() {
         if (g_mode == Mode::Normal) {
           g_mode = Mode::Alarm;
           Serial.println("[모드변경] Normal -> Alarm (버튼입력)");
+          sendAlarm(); // 상태 변경을 다른 장치에 전파
         } else {
           g_mode = Mode::Normal;
           Serial.println("[모드변경] Alarm -> Normal (버튼입력)");
+          sendNormal(); // 상태 변경을 다른 장치에 전파
         }
-        sendAlarm(); // 상태 변경을 다른 장치에 전파
       }
     }
   }
 
+  // 2.5. 센서 입력 처리 (주기적)
+  if (millis() - lastSensorReadMs >= SENSOR_READ_INTERVAL_MS) {
+    lastSensorReadMs = millis();
+    int gasValue = analogRead(GAS_SENSOR_PIN);
+    Serial.printf("[센서] Gas=%d\n", gasValue);
+
+    if (gasValue > GAS_THRESHOLD && g_mode == Mode::Normal) {
+      g_mode = Mode::Alarm;
+      Serial.println("[모드변경] Normal -> Alarm (가스센서)");
+      sendAlarm();
+    }
+    // TODO: DHT11 온도 센서 로직 추가 (핀 충돌 해결 후)
+  }
+
   // 3. 현재 모드에 따른 출력 제어
   if (g_mode == Mode::Alarm) {
-    // 알람 모드: 내장 LED 토글, 상태 LED 점멸
+    // 알람 모드: 내장 LED 토글, 상태 LED 점멸, 스피커 비프, 레이저/모터 켬
     if (millis() - lastLedToggleMs >= LED_TOGGLE_INTERVAL_MS) {
       lastLedToggleMs = millis();
       digitalWrite(LED_PIN, !digitalRead(LED_PIN)); // 내장 LED
@@ -149,10 +182,19 @@ void loop() {
       lastLedStatToggleMs = millis();
       digitalWrite(LED_STAT_PIN, !digitalRead(LED_STAT_PIN)); // 상태 LED
     }
+    if (millis() - lastSpkToggleMs >= BEEP_INTERVAL_MS) {
+      lastSpkToggleMs = millis();
+      digitalWrite(SPK_PIN, !digitalRead(SPK_PIN)); // 스피커 (토글로 비프음 생성)
+    }
+    digitalWrite(SW_LASER_PIN, HIGH);
+    digitalWrite(SW_MOTOR_PIN, HIGH);
   } else {
-    // 일반 모드: 내장 LED 끔, 상태 LED 켬
+    // 일반 모드: 내장 LED 끔, 상태 LED 켬, 스피커/레이저/모터 끔
     digitalWrite(LED_PIN, LOW);
     digitalWrite(LED_STAT_PIN, HIGH);
+    digitalWrite(SPK_PIN, LOW);
+    digitalWrite(SW_LASER_PIN, LOW);
+    digitalWrite(SW_MOTOR_PIN, LOW);
   }
 
   // 4. 주기적인 상태 정보 출력

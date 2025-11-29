@@ -15,11 +15,13 @@
 #define GAS_SENSOR_PIN 25
 // TODO: hw_description.md는 btn_mode와 temp 센서 모두에 gpio4를 할당합니다. 핀 충돌을 해결해야 합니다.
 #define TEMP_SENSOR_PIN 4 // hw_description.md: temp.a0= gpio4
+#define SW_LASER_PIN 12 // TODO: 핀 할당 필요
+#define SW_MOTOR_PIN 14 // TODO: 핀 할당 필요
 
 // 시리얼 설정
 #ifndef SERIAL_BAUD
 #define SERIAL_BAUD 115200
-#define STATUS_PRINT_INTERVAL_MS 2000
+#define STATUS_PRINT_INTERVAL_MS 1000
 #endif
 
 // 개발 단계 관리 (아키텍트 프로세스)
@@ -30,6 +32,9 @@
 #define LED_TOGGLE_INTERVAL_MS 300
 #define LED_STAT_BLINK_INTERVAL_MS 500
 #define MODE_BROADCAST_INTERVAL_MS 500
+#define SENSOR_READ_INTERVAL_MS 2000
+#define BEEP_INTERVAL_MS 1000
+#define GAS_THRESHOLD 600
 #define ALARM_MSG "alarm"
 #define NORMAL_MSG "normal"
 // 참고: BTN_PIN은 32(PULLUP)로 유지
