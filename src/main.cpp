@@ -21,6 +21,7 @@ static Mode g_mode = Mode::Normal;
 enum class RxSig { None = 0, Alarm };
 static volatile RxSig g_lastRxSig = RxSig::None;
 static uint32_t lastLedToggleMs = 0;
+static uint32_t lastLedStatToggleMs = 0;
 static const uint8_t kBroadcastAddr[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 static void onDataRecv(const uint8_t *mac, const uint8_t *data, int len);
 static void onDataSent(const uint8_t *mac, esp_now_send_status_t status);
@@ -78,6 +79,8 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
+
+  pinMode(LED_STAT_PIN, OUTPUT);
 
   pinMode(BTN_PIN, INPUT_PULLUP);  // 내부 풀업 사용(눌림=LOW)
   lastBtnState = digitalRead(BTN_PIN);
@@ -137,14 +140,19 @@ void loop() {
 
   // 3. 현재 모드에 따른 출력 제어
   if (g_mode == Mode::Alarm) {
-    // 알람 모드일 경우 LED를 주기적으로 토글
+    // 알람 모드: 내장 LED 토글, 상태 LED 점멸
     if (millis() - lastLedToggleMs >= LED_TOGGLE_INTERVAL_MS) {
       lastLedToggleMs = millis();
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+      digitalWrite(LED_PIN, !digitalRead(LED_PIN)); // 내장 LED
+    }
+    if (millis() - lastLedStatToggleMs >= LED_STAT_BLINK_INTERVAL_MS) {
+      lastLedStatToggleMs = millis();
+      digitalWrite(LED_STAT_PIN, !digitalRead(LED_STAT_PIN)); // 상태 LED
     }
   } else {
-    // 일반 모드일 경우 LED를 끔
+    // 일반 모드: 내장 LED 끔, 상태 LED 켬
     digitalWrite(LED_PIN, LOW);
+    digitalWrite(LED_STAT_PIN, HIGH);
   }
 
   // 4. 주기적인 상태 정보 출력

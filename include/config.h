@@ -6,8 +6,15 @@
 #endif
 
 #ifndef BTN_PIN
-#define BTN_PIN 32    // GPIO32: 내부 풀업 가능(내장 풀업 사용)
+#define BTN_PIN 4    // hw_description.md: btn_mode.plus = gpio4
 #endif
+
+// hw_description.md 에 따른 추가 핀 설정
+#define LED_STAT_PIN 13
+#define SPK_PIN 5
+#define GAS_SENSOR_PIN 25
+// TODO: hw_description.md는 btn_mode와 temp 센서 모두에 gpio4를 할당합니다. 핀 충돌을 해결해야 합니다.
+#define TEMP_SENSOR_PIN 4 // hw_description.md: temp.a0= gpio4
 
 // 시리얼 설정
 #ifndef SERIAL_BAUD
@@ -21,6 +28,7 @@
 #define STEP_2_IMPLEMENT_ESP_NOW 1
 #define ESPNOW_CHANNEL 1
 #define LED_TOGGLE_INTERVAL_MS 300
+#define LED_STAT_BLINK_INTERVAL_MS 500
 #define MODE_BROADCAST_INTERVAL_MS 500
 #define ALARM_MSG "alarm"
 #define NORMAL_MSG "normal"
